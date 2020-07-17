@@ -21,9 +21,8 @@ public class CreateSingleDataTest {
         graph = new OrientGraph( database, user, pwd);
 
         // delete existing vertices and edges
-        graph.getVerticesOfClass("V").forEach(v -> graph.removeVertex(v));
+        DataHelper.cleanupVerticesAndEdges(graph);
 
-        graph.getEdgesOfClass("E").forEach(edge -> graph.removeEdge(edge));
 
         // prepare schema if not already done...
         OrientVertexType bookType = SchemaHelper.createVertexTypeIfNotExist(graph, "Book");
@@ -32,6 +31,8 @@ public class CreateSingleDataTest {
         OrientVertexType readerType = SchemaHelper.createVertexTypeIfNotExist(graph, "Reader");
         SchemaHelper.addPropertyIfNotExists(readerType, "firstname", OType.STRING);
         SchemaHelper.addPropertyIfNotExists(readerType, "lasstname", OType.STRING);
+
+        SchemaHelper.createEdgeTypeIfNotExist(graph, "bought");
     }
 
     @AfterAll
@@ -49,9 +50,22 @@ public class CreateSingleDataTest {
 
         Vertex book   = graph.addVertex("class:Book");
         book.setProperty("title", "title1");
+
         assertEquals(2, graph.countVertices(), "expected 2 vertices => One Book, one Reader");
 
         graph.addEdge(null, reader, book, "bought");
         assertEquals(1, graph.countEdges(), "expected 1 edge => One Reader bought one Book.");
     }
+
+    /*
+    @Test
+    public void testMultipleBuyingsOfReader(){
+
+        BookReader reader = new BookReader();
+        //String listOfBooks
+        reader.getByFirstName(graph,"Name1").bought(new String[]{"title1", "title2", "title3"});
+    }
+    */
+
+
 }
