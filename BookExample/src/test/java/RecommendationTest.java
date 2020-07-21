@@ -1,11 +1,26 @@
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.tinkerpop.blueprints.Direction;
+import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+//import org.apache.tinkerpop.gremlin.orientdb.OrientGraph;
+//import org.apache.tinkerpop.gremlin.orientdb.OrientGraphFactory;
+//import org.apache.tinkerpop.gremlin.structure.Vertex;
+//import com.orientechnologies.orientdb.gremlin;
+//import org.apache.tinkerpop.gremlin.orientdb;
+//import org.apache.tinkerpop.gremlin.orientdb.*
+//import com.tinkerpop.gremlin.process.traversal.Traversal;
+
 
 /**
  *     inspired by Gremlin example 5 at https://tinkerpop.apache.org/
@@ -16,6 +31,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *       where(not(within("stash"))).
  *       groupCount().
  *       order(local).by(values,desc)
+ *
+ *       Tinker Pop / Gremlin is not supported bys the current OrienDB distribution, but there is
+ *       a deveoper versionavailable at http://orientdb.com/download
  *
  */
 public class RecommendationTest {
@@ -91,9 +109,54 @@ public class RecommendationTest {
 
         //graph.getVerticesOfClass()
         // check database
-        assertEquals(25, graph.countVertices(), "expected 2 vertices => One Book, one Reader");
+        assertEquals(25, graph.countVertices(), "expected 25 vertices => One Book, one Reader");
 
-        assertEquals(24, graph.countEdges("bought"), "expected 4 edges of type bought");
+        assertEquals(24, graph.countEdges("bought"), "expected 24 edges of type bought");
+    }
+
+    @Test
+    public void testBoughtBooks(){
+        Vertex gremlin0 = graph.getVertices("lastname","Gremlin_0").iterator().next();
+
+        assertEquals("Name_0", gremlin0.getProperty("firstname"));
+
+        Iterable<Vertex> booksBought =   gremlin0.getVertices(Direction.OUT, "bought");
+        assertNotNull(booksBought, "bought books should not be null");
+        System.out.println("Gremlin0 bought these books");
+        int i = 0;
+        for (Vertex book  : booksBought) {
+            i++;
+            System.out.println(book.getProperty("title").toString());
+        }
+        assertEquals(4,i);
+
+        System.out.println("Other readers");
+        List<Vertex> otherReaders = new ArrayList<>();
+        for (Vertex book : booksBought){
+            Iterable<Vertex> readers = book.getVertices(Direction.IN);
+            for (Vertex otherReader : readers){
+
+                String lastname = otherReader.getProperty("lastname").toString();
+                if (!lastname.equals("Gremlin_0")) {
+                    otherReaders.add(otherReader);
+                    System.out.println(lastname);
+                }
+            }
+        }
+        assertEquals(4,otherReaders.size());
+
+        List<Vertex> otherBooks = new ArrayList<>();
+        System.out.println("... other books bought by these users");
+        for (Vertex reader : otherReaders){
+              Iterable<Vertex> otherBookList = reader.getVertices(Direction.OUT, "bought");
+              for (Vertex book : otherBookList){
+                  otherBooks.add(book);
+                  System.out.println(book.getProperty("title").toString());
+              }
+        }
+        assertEquals(23, otherBooks.size());
+
+        // Recommondation: Remove duplicates and book user already bought ...
     }
 
 }

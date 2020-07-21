@@ -16,6 +16,8 @@ dependencies {
     compile 'com.orientechnologies:orientdb-core:3.0.0'
     compile 'com.orientechnologies:orientdb-client:3.0.0'
     compile 'com.orientechnologies:orientdb-graphdb:3.0.0'
+    //compile group: 'com.orientechnologies', name: 'orientdb-gremlin', version: '3.1.1'
+
 
 }
 
