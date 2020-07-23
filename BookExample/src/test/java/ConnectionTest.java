@@ -2,13 +2,10 @@ import com.orientechnologies.orient.core.db.ODatabaseSession;
 import com.orientechnologies.orient.core.db.OrientDB;
 import com.orientechnologies.orient.core.db.OrientDBConfig;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import com.orientechnologies.orient.core.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 
 public class ConnectionTest {
@@ -23,10 +20,15 @@ public class ConnectionTest {
         assertNotNull(graph);
 
         graph.shutdown();
+
+        //graph = new OrientGraph("remote:localhost/swk_books", "admin", "admin");
+        //assertNotNull(graph);
+
+        graph.shutdown();
     }
 
     @Test
-    public void testConnectionViaDBClass(){
+    public void testConnectionViaDBClassCheck(){
 
         OrientDB orientDB = new OrientDB("remote:localhost", OrientDBConfig.defaultConfig());
         assertNotNull(orientDB);

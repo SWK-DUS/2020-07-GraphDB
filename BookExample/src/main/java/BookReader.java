@@ -1,26 +1,35 @@
 import com.tinkerpop.blueprints.Vertex;
-import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 
-/**
- * DEPRECATED not finished, yet!!!!
- * ToDo: Implement bought method
- */
 public class BookReader {
 
-    private Vertex myVertex;
-
-    public BookReader getByFirstName(OrientGraph graph, String name1) {
-
-        Iterable<Vertex> vertices = graph.getVertices("firstname", name1);
-        myVertex = vertices.iterator().next();
-        return this;
+    public BookReader(Vertex vertex){
+       this.vertex = vertex;
     }
 
-    public void bought(String[] listOfBooks){
+    public Vertex vertex = null;
 
-        for (int i=0; i < listOfBooks.length; i++){
-            // get book
-            //myVertex.
+    public String getFirstName(){
+        return vertex.getProperty("firstname");
+    }
+
+    public String getLastName(){
+        return vertex.getProperty("lastname");
+    }
+
+    public boolean equals(Object obj) {
+        if (obj instanceof BookReader) {
+            BookReader another = (BookReader) obj;
+
+            if (this.vertex.getId().equals(another.vertex.getId() )) {
+                return true;
+            }
         }
+
+        return false;
     }
+
+    public int hashCode(){
+        return vertex.getId().hashCode();
+    }
+
 }

@@ -7,8 +7,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -52,6 +52,9 @@ public class RecommendationTest {
      *
      * // EVERY TIME YOU NEED A GRAPH INSTANCE
      * OrientGraph graph = factory.getTx();
+     *
+     * Gephi http://localhost:2480/gephi/SWK_Books/sql/select%20from%20v
+     * need streamin plugin of Gephy
      */
     @BeforeAll
     public static void setup(){
@@ -105,7 +108,7 @@ public class RecommendationTest {
      *      count number ofh results....
      */
     @Test
-    public void testRecommendation(){
+    public void testTestData(){
 
         //graph.getVerticesOfClass()
         // check database
@@ -115,48 +118,58 @@ public class RecommendationTest {
     }
 
     @Test
-    public void testBoughtBooks(){
-        Vertex gremlin0 = graph.getVertices("lastname","Gremlin_0").iterator().next();
+    public void testRecommendation(){
+        BookReader gremlin0 = new BookReader(graph.getVertices("lastname","Gremlin_0").iterator().next());
 
-        assertEquals("Name_0", gremlin0.getProperty("firstname"));
+        assertEquals("Name_0", gremlin0.getFirstName());
 
-        Iterable<Vertex> booksBought =   gremlin0.getVertices(Direction.OUT, "bought");
-        assertNotNull(booksBought, "bought books should not be null");
+        //gremlin0.vertex.
+        Iterable<Vertex> bookNodesBoughtByGremlin0 =   gremlin0.vertex.getVertices(Direction.OUT, "bought");
+        Set<Book> booksBoughtByGremlin0 = new HashSet<>();
+        assertNotNull(bookNodesBoughtByGremlin0, "bought books should not be null");
         System.out.println("Gremlin0 bought these books");
         int i = 0;
-        for (Vertex book  : booksBought) {
+        for (Vertex book  : bookNodesBoughtByGremlin0) {
             i++;
+            booksBoughtByGremlin0.add(new Book(book));
             System.out.println(book.getProperty("title").toString());
         }
         assertEquals(4,i);
 
         System.out.println("Other readers");
-        List<Vertex> otherReaders = new ArrayList<>();
-        for (Vertex book : booksBought){
-            Iterable<Vertex> readers = book.getVertices(Direction.IN);
+        Set<BookReader> otherReaders = new HashSet<>();
+        for (Book book : booksBoughtByGremlin0){
+            Iterable<Vertex> readers = book.vertex.getVertices(Direction.IN, "bought");
             for (Vertex otherReader : readers){
 
                 String lastname = otherReader.getProperty("lastname").toString();
                 if (!lastname.equals("Gremlin_0")) {
-                    otherReaders.add(otherReader);
-                    System.out.println(lastname);
+                    otherReaders.add(new BookReader(otherReader));
+                    System.out.println(lastname + " vertex.getId() " + otherReader.getId());
                 }
             }
         }
-        assertEquals(4,otherReaders.size());
+        assertEquals(3,otherReaders.size());
 
-        List<Vertex> otherBooks = new ArrayList<>();
+        Set<Book> otherBooks = new HashSet<>();
         System.out.println("... other books bought by these users");
-        for (Vertex reader : otherReaders){
-              Iterable<Vertex> otherBookList = reader.getVertices(Direction.OUT, "bought");
+        for (BookReader reader : otherReaders){
+              Iterable<Vertex> otherBookList = reader.vertex.getVertices(Direction.OUT, "bought");
               for (Vertex book : otherBookList){
-                  otherBooks.add(book);
-                  System.out.println(book.getProperty("title").toString());
+                  otherBooks.add(new Book(book));
+                  System.out.print(book.getProperty("title").toString() + " / ");
               }
+              System.out.println();
         }
-        assertEquals(23, otherBooks.size());
+        assertEquals(13, otherBooks.size());
 
-        // Recommondation: Remove duplicates and book user already bought ...
+        System.out.println("... recommended books: ");
+        otherBooks.removeAll(booksBoughtByGremlin0);
+        otherBooks.forEach(book -> System.out.print(book.getTitle() + " / "));
+        assertEquals(10, otherBooks.size());
+        // Next Steps:
+        // - Introduce VertexWrapper instead of wrapper per class
+        // - try to implement count of books of other readers in order to create a ranking
     }
 
 }
