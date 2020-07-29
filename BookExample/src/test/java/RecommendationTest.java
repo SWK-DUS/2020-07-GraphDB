@@ -7,11 +7,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 //import org.apache.tinkerpop.gremlin.orientdb.OrientGraph;
 //import org.apache.tinkerpop.gremlin.orientdb.OrientGraphFactory;
@@ -39,9 +37,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class RecommendationTest {
 
     private static OrientGraph graph = null;
-    private static String database = "remote:localhost/SWK_Books";
-    private static String user = "admin";
-    private static String pwd = "admin";
+    private static final String database = "remote:localhost/SWK_Books";
+    private static final String user = "admin";
+    private static final String pwd = "admin";
 
 
     /**
@@ -125,21 +123,21 @@ public class RecommendationTest {
 
         //gremlin0.vertex.
         Iterable<Vertex> bookNodesBoughtByGremlin0 =   gremlin0.vertex.getVertices(Direction.OUT, "bought");
-        Set<Book> booksBoughtByGremlin0 = new HashSet<>();
+        Set<BookVertex> booksBoughtByGremlin0 = new HashSet<>();
         assertNotNull(bookNodesBoughtByGremlin0, "bought books should not be null");
         System.out.println("Gremlin0 bought these books");
         int i = 0;
         for (Vertex book  : bookNodesBoughtByGremlin0) {
             i++;
-            booksBoughtByGremlin0.add(new Book(book));
+            booksBoughtByGremlin0.add(new BookVertex(book));
             System.out.println(book.getProperty("title").toString());
         }
         assertEquals(4,i);
 
         System.out.println("Other readers");
         Set<BookReader> otherReaders = new HashSet<>();
-        for (Book book : booksBoughtByGremlin0){
-            Iterable<Vertex> readers = book.vertex.getVertices(Direction.IN, "bought");
+        for (BookVertex book : booksBoughtByGremlin0){
+            Iterable<Vertex> readers = book.getVertex().getVertices(Direction.IN, "bought");
             for (Vertex otherReader : readers){
 
                 String lastname = otherReader.getProperty("lastname").toString();
@@ -151,12 +149,12 @@ public class RecommendationTest {
         }
         assertEquals(3,otherReaders.size());
 
-        Set<Book> otherBooks = new HashSet<>();
+        Set<BookVertex> otherBooks = new HashSet<>();
         System.out.println("... other books bought by these users");
         for (BookReader reader : otherReaders){
               Iterable<Vertex> otherBookList = reader.vertex.getVertices(Direction.OUT, "bought");
               for (Vertex book : otherBookList){
-                  otherBooks.add(new Book(book));
+                  otherBooks.add(new BookVertex(book));
                   System.out.print(book.getProperty("title").toString() + " / ");
               }
               System.out.println();
@@ -172,4 +170,92 @@ public class RecommendationTest {
         // - try to implement count of books of other readers in order to create a ranking
     }
 
+    @Test
+    public void testRecommendationWithRating(){
+
+        BookReader gremlin0 = new BookReader(graph.getVertices("lastname","Gremlin_0").iterator().next());
+
+        assertEquals("Name_0", gremlin0.getFirstName());
+
+        Iterable<Vertex> bookNodesBoughtByGremlin0 =   gremlin0.vertex.getVertices(Direction.OUT, "bought");
+        Set<BookVertex> booksBoughtByGremlin0 = new HashSet<>();
+        assertNotNull(bookNodesBoughtByGremlin0, "bought books should not be null");
+        System.out.println("Gremlin0 bought these books");
+        int i = 0;
+        for (Vertex book  : bookNodesBoughtByGremlin0) {
+            i++;
+            booksBoughtByGremlin0.add(new BookVertex(book));
+            System.out.println(book.getProperty("title").toString());
+        }
+        assertEquals(4,i);
+
+        System.out.println("Other readers");
+        Set<BookReader> otherReaders = new HashSet<>();
+        for (BookVertex book : booksBoughtByGremlin0){
+            Iterable<Vertex> readers = book.getVertex().getVertices(Direction.IN, "bought");
+            for (Vertex otherReader : readers){
+
+                String lastname = otherReader.getProperty("lastname").toString();
+                if (!lastname.equals("Gremlin_0")) {
+                    otherReaders.add(new BookReader(otherReader));
+                    System.out.println(lastname + " vertex.getId() " + otherReader.getId());
+                }
+            }
+        }
+        assertEquals(3,otherReaders.size());
+
+        List<BookVertex> otherBooks = new ArrayList<>();
+        System.out.println("... other books bought by these users");
+        for (BookReader reader : otherReaders){
+            Iterable<Vertex> otherBookList = reader.vertex.getVertices(Direction.OUT, "bought");
+            for (Vertex vertex : otherBookList){
+
+                BookVertex book = new BookVertex(vertex);
+                //Check if already in list
+                if (otherBooks.contains(book)){
+                    otherBooks.get(otherBooks.indexOf(book)).incCounter();
+                } else {
+                    otherBooks.add(book);
+                }
+                System.out.print(book.getTitle() + " / ");
+            }
+            System.out.println();
+        }
+        assertEquals(13, otherBooks.size());
+
+        Collections.sort(otherBooks, new SortBookVertexByCount());
+
+        System.out.println("Books with count: ");
+        for (BookVertex book : otherBooks){
+            System.out.println(book.getTitle() + " " + book.getCount());
+        }
+
+
+    }
+
+    @Test
+    public void testFindBookInList(){
+
+        BookReader gremlin0 = new BookReader(graph.getVertices("lastname","Gremlin_0").iterator().next());
+        assertEquals("Name_0", gremlin0.getFirstName());
+
+        Iterable<Vertex> bookNodesBoughtByGremlin0 =   gremlin0.vertex.getVertices(Direction.OUT, "bought");
+
+        Vertex firstBookNode = bookNodesBoughtByGremlin0.iterator().next();
+        BookVertex firstBook= new BookVertex(firstBookNode);
+
+        List<BookVertex> books = new ArrayList<>();
+
+        for (Vertex v : bookNodesBoughtByGremlin0){
+            books.add(new BookVertex(v));
+        }
+
+        assertTrue(books.contains(firstBook));
+        assertTrue(books.indexOf(firstBook) >= 0);
+
+        books.get(books.indexOf(firstBook)).incCounter();
+
+        assertEquals(books.get(books.indexOf(firstBook)).getCount(), 2);
+        
+    }
 }
